@@ -1,0 +1,12 @@
+{
+  "loginButton": [925, 840],
+  "usernameInput": [752, 677],
+  "passwordInput": [752, 750],
+  "ignInput": [720, 563],
+  "ignButtonConfirm": [1270, 563],
+  "ignOkayButton": [858, 711],
+  "buyCharacterButton": [957, 932],
+  "confirmPurchaseCompleteButton": [954, 653],
+  "luckSpinLogoButton": [666, 105],
+  "useFreeSpinButton": [852, 897]
+}
