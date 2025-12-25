@@ -11,6 +11,7 @@ import pydirectinput
 import pygetwindow as gw
 import pandas as pd
 import logging
+import requests
 
 from PIL import ImageGrab, Image
 from skimage.metrics import structural_similarity as ssim
@@ -48,6 +49,9 @@ UI_STATES = {
     "HOME_ADS": "images/home_ads.png",
     "LUCKY_DRAW": "images/lucky_draw.png"
 }
+
+API_BASE = "http://192.168.131.250:3000/lucky-spin"
+errorLeft = 3
 
 with open("keyboard.json", "r") as f:
     coords = json.load(f)
@@ -556,20 +560,35 @@ def main():
 # ----------------------------------------------------
 # MAIN
 # ----------------------------------------------------
-
-errorLeft = 3
 logging.info("Starting main account processing loop")
 while errorLeft > 0:
-    logging.info(f"Loading database. Errors left: {errorLeft}")
-    df = pd.read_csv("database.csv")
-    toProcessDf = df[(df["CLAIMED_LUCKY"] == False) & (df["STATUS"] == "undefined") & (df["ECOIN"] > 0)].sample(n=1)
-    account = toProcessDf.iloc[0]
-    index = account.name  
-    
+    logging.info(f"Loading backend jobs. Errors left: {errorLeft}")
+
+    try:
+        # 1️⃣ Fetch next LuckySpin job
+        res = requests.get(f"{API_BASE}/next", timeout=10)
+
+        if res.status_code == 404:
+            logging.info("No Lucky Spin jobs available. Sleeping...")
+            time.sleep(10)
+            continue
+
+        res.raise_for_status()
+        job = res.json()
+
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Backend request failed: {e}")
+        errorLeft -= 1
+        time.sleep(5)
+        continue
+
+    job_id = job["jobId"]
+    account = job["account"]
+
     data = {
-        'username': account['USERNAME'],
-        'password': account['PASSWORD'],
-        'ign': account['IGN']
+        "username": account["username"],
+        "password": account["password"],
+        "ign": account["ign"]
     }
 
     logging.info(f"Selected account for processing: {data['username']}")
@@ -579,25 +598,41 @@ while errorLeft > 0:
 
     logging.info("Starting main automation process")
     success = main()
-    if success:
-        logging.info("Automation completed successfully")
-        df.loc[index, 'CLAIMED_LUCKY'] = bool(success)
-        df.loc[index, 'STATUS'] = "complete"
-        logging.info("Updated database: CLAIMED_LUCKY=True, STATUS=complete")
-    else:
-        logging.error("Automation failed")
-        df.loc[index, 'CLAIMED_LUCKY'] = bool(success)
-        df.loc[index, 'STATUS'] = "error"
-        logging.info("Updated database: CLAIMED_LUCKY=False, STATUS=error")
     
-    df.to_csv("database.csv", index=False)
-    logging.info("Database saved")
+    try:
+        if success:
+            logging.info("Automation completed successfully")
 
-    errorLeft = 0
+            requests.patch(
+                f"{API_BASE}/{job_id}",
+                json={
+                    "status": "success",
+                    "isClaimed": True,
+                    "claimedAt": time.strftime("%Y-%m-%dT%H:%M:%S")
+                },
+                timeout=10
+            )
 
-    if not success:
+            errorLeft = 3
+            logging.info("Success detected, resetting error counter to 3")
+
+        else:
+            logging.error("Automation failed")
+
+            requests.patch(
+                f"{API_BASE}/{job_id}",
+                json={
+                    "status": "failed"
+                },
+                timeout=10
+            )
+
+            errorLeft -= 1
+            logging.warning(f"Failure detected. errorLeft={errorLeft}")
+
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Failed to update job status: {e}")
         errorLeft -= 1
-        logging.warning(f"Failure detected. errorLeft={errorLeft}")
-    else: 
-        errorLeft = 3
-        logging.info("Success detected, resetting error counter to 3")   
+
+    # Optional cooldown to avoid hammering backend
+    time.sleep(2)
