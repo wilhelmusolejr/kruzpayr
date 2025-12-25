@@ -67,3 +67,6 @@ desktop.ini
 *.vmcx
 *.vmrs
 *.vhdx
+
+
+mongo-local-server/
