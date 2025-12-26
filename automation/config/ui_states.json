@@ -1,6 +1,8 @@
 {
   "LOGIN": "images/login.png",
   "HOME": "images/home.png",
+  "IGN": "images/input_ign.png",
   "HOME_ADS": "images/home_ads.png",
-  "LUCKY_DRAW": "images/lucky_draw.png"
+  "LUCKY_DRAW": "images/lucky_draw.png",
+  "BUY_CHAR": "images/buy_char.png"
 }
