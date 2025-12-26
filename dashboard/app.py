@@ -1,6 +1,11 @@
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO
 from datetime import datetime
+from werkzeug.utils import secure_filename
+import os
+
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+LOG_DATA_DIR = os.path.join(BASE_DIR, "log_data", "screenshots")
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -31,6 +36,31 @@ def receive_log():
 
     socketio.emit("log", log_entry)
     return jsonify({"ok": True})
+
+@app.route("/upload-screenshot", methods=["POST"])
+def upload_screenshot():
+    if "file" not in request.files:
+        return jsonify({"error": "No file"}), 400
+
+    file = request.files["file"]
+    runner = request.form.get("runner", "unknown")
+    username = request.form.get("username", "unknown")
+
+    runner_dir = os.path.join(LOG_DATA_DIR, runner)
+    os.makedirs(runner_dir, exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = secure_filename(f"{username}_{timestamp}.png")
+
+    save_path = os.path.join(runner_dir, filename)
+    file.save(save_path)
+
+    return jsonify({
+        "ok": True,
+        "path": save_path,
+        "filename": filename
+    })
+
 
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=3001, debug=True)
