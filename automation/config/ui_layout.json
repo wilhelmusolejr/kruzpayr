@@ -2,20 +2,20 @@
   "resolution": {
     "800x600": {
       "keyboard": {
-        "loginButton": [925, 840],
-        "usernameInput": [752, 677],
-        "passwordInput": [752, 750],
-        "ignInput": [720, 563],
-        "ignButtonConfirm": [1270, 563],
-        "ignOkayButton": [858, 711],
-        "buyCharacterButton": [957, 932],
-        "confirmPurchaseCompleteButton": [954, 653],
-        "luckSpinLogoButton": [666, 105],
-        "useFreeSpinButton": [852, 897]
+        "usernameInput": [330, 381],
+        "passwordInput": [330, 434],
+        "loginButton": [378, 493],
+        "ignInput": [305, 312],
+        "ignButtonConfirm": [538, 312],
+        "ignOkayButton": [361, 397],
+        "buyCharacterButton": [405, 515],
+        "confirmPurchaseCompleteButton": [398, 368],
+        "luckSpinLogoButton": [283, 52],
+        "useFreeSpinButton": [345, 498]
       },
       "roi": {
-        "login_form": [460, 330, 860, 730],
-        "lucky_button": [460, 330, 860, 730]
+        "login_form": [282, 330, 521, 585],
+        "lucky_button": [264, 477, 440, 533]
       }
     }
   }
