@@ -4,5 +4,6 @@
   "IGN": "images/input_ign.png",
   "HOME_ADS": "images/home_ads.png",
   "LUCKY_DRAW": "images/lucky_draw.png",
-  "BUY_CHAR": "images/buy_char.png"
+  "BUY_CHAR": "images/buy_char.png",
+  "HOME_MODAL": "images/modal.png"
 }

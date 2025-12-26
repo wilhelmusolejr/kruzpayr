@@ -722,6 +722,8 @@ def main():
     send_log("INFO", sms)
     close_crossfire_window()
 
+    time.sleep(10)
+
     return True
 
 # ----------------------------------------------------
