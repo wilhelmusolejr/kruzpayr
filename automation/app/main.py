@@ -4,6 +4,7 @@ from config.config import (
     GAME_PROCESS_NAME,
     LOGIN_FORM_REF,
     LOGIN_FORM_THRESHOLD,
+    MODAL_REF,
     LUCKY_NOT_CLICKABLE_REF,
     CHECK_INTERVAL,
     API_BASE,
@@ -321,6 +322,28 @@ def close_crossfire_window():
     logging.info(sms)
     send_log("INFO", sms)
     return False
+
+def isModalExist():
+    x1, y1, x2, y2 = (250, 202, 546, 391)
+    width = x2 - x1
+    height = y2 - y1   
+
+    current_roi = pyautogui.screenshot(region=(x1, y1, width, height))
+    reference = Image.open(MODAL_REF)
+
+    current_gray = np.array(current_roi.convert("L"))
+    reference_gray = np.array(reference.convert("L"))
+
+    if current_gray.shape != reference_gray.shape:
+        logging.warning(f"ROI size mismatch: {current_gray.shape} vs {reference_gray.shape}")
+        send_log("WARNING", f"ROI size mismatch: {current_gray.shape} vs {reference_gray.shape}")
+        return False
+
+    score, _ = ssim(current_gray, reference_gray, full=True)
+    logging.info(f"MODAL BUTTON similarity: {score:.2f}")
+    send_log("INFO", f"MODAL BUTTON similarity: {score:.2f}")
+
+    return score >= LOGIN_FORM_THRESHOLD 
 
 def image_similarity(img1, img2):
     img1_gray = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
@@ -656,6 +679,23 @@ def main():
             logging.info(sms)
             send_log("INFO", sms)
 
+            time.sleep(5)
+
+            if isModalExist():
+                x, y = coords['confirmPurchaseCompleteButton']
+
+                logging.info("Found modal in home")
+                send_log("INFO", "Found modal in home")
+                pydirectinput.moveTo( x, y)
+                
+                time.sleep(1)
+
+                pyautogui.press("enter")
+                time.sleep(1)
+
+                pyautogui.press("enter")
+                time.sleep(1)
+
             # PRESS LUCKY LOGO
             x, y = coords['luckSpinLogoButton']
             logging.info(f"Moving to lucky spin logo button at ({x}, {y})")
@@ -721,6 +761,8 @@ def main():
     logging.info(sms)
     send_log("INFO", sms)
     close_crossfire_window()
+
+    time.sleep(10)
 
     return True
 
