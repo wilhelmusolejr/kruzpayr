@@ -70,7 +70,8 @@ desktop.ini
 *.vhdx
 
 
-mongo-local-server/
-dashboard/
+node_modules/
+.env
+
 *.csv
 *.txt
