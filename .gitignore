@@ -74,4 +74,3 @@ node_modules/
 .env
 
 *.csv
-*.txt
