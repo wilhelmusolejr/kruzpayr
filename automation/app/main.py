@@ -3,7 +3,6 @@ from config.config import (
     EXE_PATH,
     GAME_PROCESS_NAME,
     UI_STATES,
-    LOGIN_FORM_ROI,
     LOGIN_FORM_REF,
     LOGIN_FORM_THRESHOLD,
     LUCKY_NOT_CLICKABLE_REF,
