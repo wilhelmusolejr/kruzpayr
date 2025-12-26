@@ -1,3 +1,17 @@
+from config.config import (
+    DATABASE_PATH,
+    EXE_PATH,
+    GAME_PROCESS_NAME,
+    UI_STATES,
+    LOGIN_FORM_ROI,
+    LOGIN_FORM_REF,
+    LOGIN_FORM_THRESHOLD,
+    LUCKY_NOT_CLICKABLE_REF,
+    CHECK_INTERVAL,
+    API_BASE,
+    waitingTime
+)
+
 import pyautogui
 import time
 import keyboard
@@ -30,32 +44,21 @@ logging.basicConfig(
 # CONFIG
 # ----------------------------------------------------
 
-database_path = "database/database.csv"
-EXE_PATH = r"C:\Program Files (x86)\Crossfire PH\patcher_cf2.exe"
-GAME_PROCESS_NAME = "crossfire.exe"
-INPUT_IGN_REF = "images/input_ign.png"
-LUCKY_NOT_CLICKABLE_REF = "images/not_clickable.png"
-RANK_MATCH_REF = "images/rankMatchUi.png"
-CHECK_INTERVAL = 5               
+resolution = "800x600"
 
-LOGIN_FORM_ROI = (460, 330, 860, 730)
-LOGIN_FORM_REF = "images/roi_test.png"
-LOGIN_FORM_THRESHOLD = 0.95
-RANKMATCH_THRESHOLD = 0.65
+config_path = "../config/"
+with open(config_path, "ui_states.json", r) as f:
+    UI_STATES = json.load(f)
 
-UI_STATES = {
-    "LOGIN": "images/login.png",
-    "HOME": "images/home.png",
-    "HOME_ADS": "images/home_ads.png",
-    "LUCKY_DRAW": "images/lucky_draw.png"
-}
+with open(config_path, "ui_layout.json", "r") as f:
+    ui_layout = json.load(f)
 
-API_BASE = "http://192.168.131.250:3000/lucky-spin"
+coords = ui_layout["resolution"][resolution]["keyboard"]
+roi = ui_layout["resolution"][resolution]["roi"]
+
+STATUS_THRESHOLD = 0.80
 errorLeft = 3
 
-with open("keyboard.json", "r") as f:
-    coords = json.load(f)
-		
 # ----------------------------------------------------
 # FUNCTIONS
 # ----------------------------------------------------
@@ -144,37 +147,6 @@ def login_form_visible():
         logging.error(f"Login form check error: {e}")
         return False
 
-def pointerGetter():
-    logging.info("Move mouse to target.")
-    logging.info("Press F8 to print X,Y")
-    logging.info("Press ESC to quit")
-
-    while True:
-        if keyboard.is_pressed("f8"):
-            x, y = pyautogui.position()
-            logging.info(f"X: {x}, Y: {y}")
-            time.sleep(0.3)  # debounce
-
-        if keyboard.is_pressed("esc"):
-            logging.info("Exiting...")
-            break
-
-def isAccountNew():
-    current_roi = pyautogui.screenshot()
-    reference = Image.open(INPUT_IGN_REF)
-
-    current_gray = np.array(current_roi.convert("L"))
-    reference_gray = np.array(reference.convert("L"))
-
-    if current_gray.shape != reference_gray.shape:
-        logging.warning(f"ROI size mismatch: {current_gray.shape} vs {reference_gray.shape}")
-        return False
-
-    score, _ = ssim(current_gray, reference_gray, full=True)
-    logging.info(f"IS ACCOUNT NEW similarity: {score:.3f}")
-
-    return score >= LOGIN_FORM_THRESHOLD
-
 def isNotClickable():
     x1, y1, x2, y2 = (401, 545, 704, 654)
     width = x2 - x1
@@ -223,22 +195,6 @@ def focus_window_by_title(keyword, timeout=10):
     logging.warning(f"Could not find window with title containing '{keyword}' within {timeout} seconds")
     return False
 
-def isThereRankMatcUi():
-    current_roi = pyautogui.screenshot()
-    reference = Image.open(RANK_MATCH_REF)
-
-    current_gray = np.array(current_roi.convert("L"))
-    reference_gray = np.array(reference.convert("L"))
-
-    if current_gray.shape != reference_gray.shape:
-        logging.warning(f"ROI size mismatch: {current_gray.shape} vs {reference_gray.shape}")
-        return False
-
-    score, _ = ssim(current_gray, reference_gray, full=True)
-    logging.info(f"isThereRank similarity: {score:.3f}")
-
-    return score >= RANKMATCH_THRESHOLD
-
 def close_crossfire_window():
     logging.info("Searching for CrossFire window to close")
     windows = gw.getWindowsWithTitle("CrossFire")
@@ -265,7 +221,6 @@ def image_similarity(img1, img2):
 
     return score
 
-STATUS_THRESHOLD = 0.80
 def getCurrentStatus():
     screenshot = pyautogui.screenshot()
     current = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
@@ -565,8 +520,7 @@ while errorLeft > 0:
     logging.info(f"Loading backend jobs. Errors left: {errorLeft}")
 
     try:
-        # 1️⃣ Fetch next LuckySpin job
-        res = requests.get(f"{API_BASE}/next", timeout=10)
+        res = requests.get(f"{API_BASE}/next", timeout=waitingTime)
 
         if res.status_code == 404:
             logging.info("No Lucky Spin jobs available. Sleeping...")
@@ -610,7 +564,7 @@ while errorLeft > 0:
                     "isClaimed": True,
                     "claimedAt": time.strftime("%Y-%m-%dT%H:%M:%S")
                 },
-                timeout=10
+                timeout=waitingTime
             )
 
             errorLeft = 3
@@ -624,7 +578,7 @@ while errorLeft > 0:
                 json={
                     "status": "failed"
                 },
-                timeout=10
+                timeout=waitingTime
             )
 
             errorLeft -= 1
@@ -634,5 +588,4 @@ while errorLeft > 0:
         logging.error(f"Failed to update job status: {e}")
         errorLeft -= 1
 
-    # Optional cooldown to avoid hammering backend
-    time.sleep(2)
+    time.sleep(5)

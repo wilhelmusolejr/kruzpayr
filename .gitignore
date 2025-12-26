@@ -13,24 +13,23 @@ build/
 # Virtual Environment
 # --------------------------------------------------
 venv/
-.env/
-.env.local/
 
 # --------------------------------------------------
-# Logs
+# Logs (runtime only)
 # --------------------------------------------------
-logs.txt
+logs/
 *.log
 
 # --------------------------------------------------
-# Screenshots / Images (runtime-generated)
+# Runtime-generated images ONLY
+# (screenshots, debug captures, etc.)
 # --------------------------------------------------
 *.bmp
-*.png
 *.jpg
 *.jpeg
 
-# Keep reference images only (adjust if needed)
+# IMPORTANT:
+# Keep reference images in /images
 !images/
 !images/**/*.png
 !images/**/*.jpg
@@ -38,7 +37,9 @@ logs.txt
 # --------------------------------------------------
 # Data / Databases
 # --------------------------------------------------
-database.csv
+# NOTE: CSV is IMPORTANT → DO NOT IGNORE
+# database.csv is intentionally tracked
+
 *.db
 *.sqlite
 *.sqlite3
@@ -46,6 +47,8 @@ database.csv
 # --------------------------------------------------
 # Temporary / Debug files
 # --------------------------------------------------
+*.tmp
+*.bak
 
 # --------------------------------------------------
 # OS / Editor
@@ -62,7 +65,7 @@ desktop.ini
 *.swp
 
 # --------------------------------------------------
-# Hyper-V / VM artifacts (just in case)
+# Hyper-V / VM artifacts
 # --------------------------------------------------
 *.vmcx
 *.vmrs
@@ -70,3 +73,4 @@ desktop.ini
 
 
 mongo-local-server/
+*.csv
