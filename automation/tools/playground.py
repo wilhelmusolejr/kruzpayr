@@ -8,8 +8,8 @@ import logging
 
 time.sleep(2)
 
-RUNNER_ID = "VM1"
-DASHBOARD_API = "http://localhost:3001"
+RUNNER_ID = "VM2"
+DASHBOARD_API = "http://192.168.131.250:3001"
 
 print("Screen size at click time:", pyautogui.size())
 
