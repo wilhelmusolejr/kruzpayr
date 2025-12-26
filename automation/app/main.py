@@ -27,6 +27,7 @@ import sys
 import pydirectinput
 import logging
 import requests
+import socketio
 
 from PIL import ImageGrab, Image
 from skimage.metrics import structural_similarity as ssim
@@ -46,6 +47,11 @@ logging.basicConfig(
 # ----------------------------------------------------
 
 resolution = "800x600"
+RUNNER_ID = "VM1"
+DASHBOARD_API = "http://localhost:3001"
+
+sio = socketio.Client()
+sio.connect(DASHBOARD_API)
 
 with open(UI_STATES_PATH, "r") as f:
     UI_STATES = json.load(f)
@@ -71,8 +77,19 @@ IP_WAIT_SECONDS = 10 * 60
 # FUNCTIONS
 # ----------------------------------------------------
 
+def send_log(level, message):
+    try:
+        sio.emit('log', {
+            "level": level,
+            "message": message,
+            "runner": RUNNER_ID
+        })
+    except Exception:
+        pass  # never crash bot because of dashboard
+
 def abort(reason):
     logging.error(f"ABORT: {reason}")
+    send_log("ERROR", f"ABORT: {reason}")
     try:
         name = data.get("username", "unknown")
         takeScreenshot(f"{name}_{reason}")
@@ -84,6 +101,7 @@ def abort(reason):
 def start_launcher():
     if not os.path.exists(EXE_PATH):
         logging.error("EXE not found")
+        send_log("ERROR", "EXE not found")
         return False
 
     # Kill patcher if already running
@@ -91,6 +109,7 @@ def start_launcher():
         try:
             if proc.info['name'] and proc.info['name'].lower() == "patcher_cf2.exe":
                 logging.info("Existing patcher found, terminating...")
+                send_log("INFO", "Existing patcher found, terminating...")
                 proc.kill()
                 proc.wait(timeout=5)
         except (psutil.NoSuchProcess, psutil.AccessDenied):
@@ -99,6 +118,7 @@ def start_launcher():
     time.sleep(1)  # give Windows time to release handles
 
     logging.info("Starting launcher...")
+    send_log("INFO", "Starting launcher...")
     os.startfile(EXE_PATH)
 
     return True
@@ -111,17 +131,20 @@ def is_process_running(process_name):
 
 def wait_for_game_process():
     logging.info("Waiting for game process...")
+    send_log("INFO", "Waiting for game process...")
 
     counterLeft = 5
     while counterLeft > 0:
         if is_process_running(GAME_PROCESS_NAME):
             logging.info("Game process detected")
+            send_log("INFO", "Game process detected")
             return True
         
         time.sleep(5)
         counterLeft -= 1
 
     logging.error("Game process not detected")
+    send_log("ERROR", "Game process not detected")
     return False
 
 def login_form_visible():
@@ -131,6 +154,7 @@ def login_form_visible():
         # Safety check
         if x2 <= x1 or y2 <= y1:
             logging.error(f"Invalid ROI: {login_form_roi}")
+            send_log("ERROR", f"Invalid ROI: {login_form_roi}")
             return False
 
         width = x2 - x1
@@ -149,15 +173,18 @@ def login_form_visible():
 
         if current_gray.shape != reference_gray.shape:
             logging.warning(f"ROI size mismatch: {current_gray.shape} vs {reference_gray.shape}")
+            send_log("WARNING", f"ROI size mismatch: {current_gray.shape} vs {reference_gray.shape}")
             return False
 
         score, _ = ssim(current_gray, reference_gray, full=True)
         logging.info(f"Login form similarity: {score:.3f}")
+        send_log("INFO", f"Login form similarity: {score:.3f}")
 
         return score >= LOGIN_FORM_THRESHOLD
 
     except Exception as e:
         logging.error(f"Login form check error: {e}")
+        send_log("ERROR", f"Login form check error: {e}")
         return False
 
 def isNotClickable():
@@ -173,10 +200,12 @@ def isNotClickable():
 
     if current_gray.shape != reference_gray.shape:
         logging.warning(f"ROI size mismatch: {current_gray.shape} vs {reference_gray.shape}")
+        send_log("WARNING", f"ROI size mismatch: {current_gray.shape} vs {reference_gray.shape}")
         return False
 
     score, _ = ssim(current_gray, reference_gray, full=True)
     logging.info(f"LUCKY SPIN BUTTON similarity: {score:.3f}")
+    send_log("INFO", f"LUCKY SPIN BUTTON similarity: {score:.3f}")
 
     return score >= LOGIN_FORM_THRESHOLD
 
@@ -185,6 +214,7 @@ def focus_window_by_title(keyword, timeout=10):
     Brings the first window containing `keyword` in its title to the front.
     """
     logging.info(f"Attempting to focus window with title containing '{keyword}' (timeout: {timeout}s)")
+    send_log("INFO", f"Attempting to focus window with title containing '{keyword}' (timeout: {timeout}s)")
     end_time = time.time() + timeout
 
     while time.time() < end_time:
@@ -192,12 +222,15 @@ def focus_window_by_title(keyword, timeout=10):
         if windows:
             win = windows[0]
             logging.info(f"Found window: '{win.title}'")
+            send_log("INFO", f"Found window: '{win.title}'")
 
             if win.isMinimized:
                 logging.info("Window is minimized, restoring")
+                send_log("INFO", "Window is minimized, restoring")
                 win.restore()
 
             logging.info("Activating window")
+            send_log("INFO", "Activating window")
             win.activate()
             time.sleep(0.5)
             logging.info("Window focused successfully")
@@ -207,22 +240,6 @@ def focus_window_by_title(keyword, timeout=10):
 
     logging.warning(f"Could not find window with title containing '{keyword}' within {timeout} seconds")
     return False
-
-# def close_crossfire_window():
-#     logging.info("Searching for CrossFire window to close")
-#     windows = gw.getWindowsWithTitle("CrossFire")
-#     if not windows:
-#         logging.error("CrossFire window not found")
-#         return False
-
-#     win = windows[0]
-#     logging.info(f"Found CrossFire window: '{win.title}', closing gracefully")
-#     win.close()   # graceful close
-#     logging.info("Waiting 2 seconds for window to close")
-#     time.sleep(2)
-#     logging.info("CrossFire window closed successfully")
-#     return True
-
 
 def close_all_crossfire_windows():
     logging.info("Searching for all CrossFire windows to close")
