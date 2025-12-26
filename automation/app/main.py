@@ -55,11 +55,17 @@ with open(UI_LAYOUT_PATH, "r") as f:
 
 coords = ui_layout["resolution"][resolution]["keyboard"]
 
+UI_STATE_IMAGES = {
+    state: cv2.imread(path)
+    for state, path in UI_STATES.items()
+}
+
 login_form_roi = (282, 330, 521, 585)
 lucky_button_roi = (264, 477, 440, 533)
 
 STATUS_THRESHOLD = 0.80
 errorLeft = 3
+IP_WAIT_SECONDS = 10 * 60 
 
 # ----------------------------------------------------
 # FUNCTIONS
@@ -67,6 +73,11 @@ errorLeft = 3
 
 def abort(reason):
     logging.error(f"ABORT: {reason}")
+    try:
+        name = data.get("username", "unknown")
+        takeScreenshot(f"{name}_{reason}")
+    except Exception:
+        pass
     close_crossfire_window()
     return False
 
@@ -231,7 +242,7 @@ def getCurrentStatus():
     best_score = 0.0
 
     for status, img_path in UI_STATES.items():
-        ref = cv2.imread(img_path)
+        ref = UI_STATE_IMAGES.get(status)
         if ref is None:
             continue
 
@@ -246,6 +257,44 @@ def getCurrentStatus():
         return "UNKNOWN", best_score
 
     return best_status, best_score
+
+def takeScreenshot(fileName):
+    current_roi = pyautogui.screenshot()
+    path = "logs/images/"
+    current_roi.save(path + fileName + ".png")
+    logging.info("Done screenshot")
+
+def get_current_ip():
+    try:
+        return requests.get("https://api.ipify.org", timeout=30).text.strip()
+    except Exception:
+        return None
+
+def wait_for_ip_change(user_info):
+    logging.warning("IP marked as bad. Need to change IP.")
+
+    old_ip = user_info["ip"]
+
+    while True:
+        logging.info("Waiting 10 minutes before checking IP again...")
+        time.sleep(IP_WAIT_SECONDS)
+
+        new_ip = get_current_ip()
+        logging.info(f"Current IP after wait: {new_ip}")
+
+        if not new_ip:
+            logging.warning("Failed to fetch IP, retrying...")
+            continue
+
+        if new_ip == old_ip:
+            logging.warning("IP has not changed. Need to change IP.")
+            continue
+
+        # IP changed ✅
+        logging.info(f"IP changed from {old_ip} → {new_ip}")
+        user_info["ip"] = new_ip
+        user_info["status"] = "initial"
+        return True
 
 def main(): 
     logging.info(f"Screen size at click time: {pyautogui.size()}")
@@ -298,7 +347,7 @@ def main():
         logging.info(f"{status} repeated {same_status_count} times")
 
         if same_status_count >= MAX_SAME_STATUS:
-            abort(f"Stuck on state {status} for too long")  
+            abort(f"Stuck on state {status} for too long")
             return False
 
         # CONDITIONALS
@@ -480,6 +529,7 @@ def main():
             while clickLeft > 0:
                 if isNotClickable():
                     logging.info("Lucky spin button is not clickable, stopping attempts")
+                    takeScreenshot(data['username'] + data['ign'] + " login")
                     break
 
                 # PRESS FREE SPIN
@@ -517,6 +567,13 @@ def main():
 # ----------------------------------------------------
 # MAIN
 # ----------------------------------------------------
+
+# get current IP address
+user_info = {
+    "ip": get_current_ip(),
+    "status": "initial"  # initial | bad
+}
+
 logging.info("Starting main account processing loop")
 while errorLeft > 0:
     logging.info(f"Loading backend jobs. Errors left: {errorLeft}")
@@ -590,4 +647,21 @@ while errorLeft > 0:
         logging.error(f"Failed to update job status: {e}")
         errorLeft -= 1
 
+    if errorLeft <= 0:
+        user_info["status"] = "bad"
+
+    # 🔴 IP is bad → do NOT run bot
+    if user_info["status"] == "bad":
+        recovered = wait_for_ip_change(user_info)
+
+        if recovered:
+            errorLeft = 1 
+            user_info["status"] = "initial"
+            logging.info("Retrying with new IP...")
+        continue
+
     time.sleep(5)
+
+
+
+
