@@ -26,6 +26,7 @@ INPUT_IGN_REF = IMAGES_DIR / "input_ign.png"
 LUCKY_NOT_CLICKABLE_REF = IMAGES_DIR / "not_clickable.png"
 RANK_MATCH_REF = IMAGES_DIR / "rankMatchUi.png"
 LOGIN_FORM_REF = IMAGES_DIR / "roi_test.png"
+MODAL_REF = IMAGES_DIR / "modal_ref.png"
 
 # --------------------------------------------------
 # UI STATES
