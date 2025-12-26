@@ -46,10 +46,13 @@ logging.basicConfig(
 resolution = "800x600"
 
 config_path = "../config/"
-with open(config_path, "ui_states.json", r) as f:
+uistates_path = os.path.join(config_path, "ui_states.json")
+uilayout_path = os.path.join(config_path, "ui_layout.json")
+
+with open(uistates_path, "r") as f:
     UI_STATES = json.load(f)
 
-with open(config_path, "ui_layout.json", "r") as f:
+with open(uilayout_path, "r") as f:
     ui_layout = json.load(f)
 
 coords = ui_layout["resolution"][resolution]["keyboard"]
