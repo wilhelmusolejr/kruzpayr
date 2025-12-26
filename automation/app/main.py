@@ -27,7 +27,6 @@ import sys
 import pydirectinput
 import logging
 import requests
-import socketio
 
 from PIL import ImageGrab, Image
 from skimage.metrics import structural_similarity as ssim
@@ -49,9 +48,6 @@ logging.basicConfig(
 resolution = "800x600"
 RUNNER_ID = "VM1"
 DASHBOARD_API = "http://localhost:3001"
-
-sio = socketio.Client()
-sio.connect(DASHBOARD_API)
 
 with open(UI_STATES_PATH, "r") as f:
     UI_STATES = json.load(f)
@@ -79,11 +75,15 @@ IP_WAIT_SECONDS = 10 * 60
 
 def send_log(level, message):
     try:
-        sio.emit('log', {
-            "level": level,
-            "message": message,
-            "runner": RUNNER_ID
-        })
+        requests.post(
+            f"{DASHBOARD_API}/log",
+            json={
+                "level": level,
+                "message": message,
+                "runner": RUNNER_ID
+            },
+            timeout=3
+        )
     except Exception:
         pass  # never crash bot because of dashboard
 
