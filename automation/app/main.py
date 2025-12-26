@@ -2,17 +2,21 @@ from config.config import (
     DATABASE_PATH,
     EXE_PATH,
     GAME_PROCESS_NAME,
-    UI_STATES,
     LOGIN_FORM_REF,
     LOGIN_FORM_THRESHOLD,
     LUCKY_NOT_CLICKABLE_REF,
     CHECK_INTERVAL,
     API_BASE,
+    errorLeft,
     UI_LAYOUT_PATH,
+    STATUS_THRESHOLD,
+    IP_WAIT_SECONDS,
+    DASHBOARD_API,
     UI_STATES_PATH,
     waitingTime
 )
 
+from datetime import datetime
 import pygetwindow as gw
 import pandas as pd
 import numpy as np
@@ -47,7 +51,6 @@ logging.basicConfig(
 
 resolution = "800x600"
 RUNNER_ID = "VM1"
-DASHBOARD_API = "http://localhost:3001"
 
 with open(UI_STATES_PATH, "r") as f:
     UI_STATES = json.load(f)
@@ -65,21 +68,25 @@ UI_STATE_IMAGES = {
 login_form_roi = (282, 330, 521, 585)
 lucky_button_roi = (264, 477, 440, 533)
 
-STATUS_THRESHOLD = 0.80
-errorLeft = 3
-IP_WAIT_SECONDS = 10 * 60 
+GLOBAL_STATUS = "initial"
 
 # ----------------------------------------------------
 # FUNCTIONS
 # ----------------------------------------------------
 
 def send_log(level, message):
+    current_time = datetime.now().strftime("%H:%M:%S")
+    username = data["username"] if "data" in globals() else "unknown"
+
     try:
         requests.post(
             f"{DASHBOARD_API}/log",
             json={
                 "level": level,
                 "message": message,
+                "time": current_time,
+                "username": username,
+                "status": GLOBAL_STATUS,
                 "runner": RUNNER_ID
             },
             timeout=3
@@ -88,6 +95,9 @@ def send_log(level, message):
         pass  # never crash bot because of dashboard
 
 def abort(reason):
+    global GLOBAL_STATUS
+    GLOBAL_STATUS = "ABORT"
+
     logging.error(f"ABORT: {reason}")
     send_log("ERROR", f"ABORT: {reason}")
     try:
@@ -100,16 +110,24 @@ def abort(reason):
 
 def start_launcher():
     if not os.path.exists(EXE_PATH):
-        logging.error("EXE not found")
-        send_log("ERROR", "EXE not found")
+
+        # log 
+        sms = "EXE not found"
+        logging.error(sms)
+        send_log("ERROR", sms)
+        
         return False
 
     # Kill patcher if already running
     for proc in psutil.process_iter(['pid', 'name']):
         try:
             if proc.info['name'] and proc.info['name'].lower() == "patcher_cf2.exe":
-                logging.info("Existing patcher found, terminating...")
-                send_log("INFO", "Existing patcher found, terminating...")
+                
+                # Log
+                sms = "Existing patcher found, terminating..."
+                logging.info(sms)
+                send_log("INFO", sms)
+                
                 proc.kill()
                 proc.wait(timeout=5)
         except (psutil.NoSuchProcess, psutil.AccessDenied):
@@ -117,10 +135,11 @@ def start_launcher():
 
     time.sleep(1)  # give Windows time to release handles
 
-    logging.info("Starting launcher...")
-    send_log("INFO", "Starting launcher...")
-    os.startfile(EXE_PATH)
+    sms = "Starting launcher..."
+    logging.info(sms)
+    send_log("INFO", sms)
 
+    os.startfile(EXE_PATH)
     return True
 
 def is_process_running(process_name):
@@ -130,21 +149,26 @@ def is_process_running(process_name):
     return False
 
 def wait_for_game_process():
-    logging.info("Waiting for game process...")
-    send_log("INFO", "Waiting for game process...")
+    # log
+    sms = "Waiting for game process..."
+    logging.info(sms)
+    send_log("INFO", sms)
 
     counterLeft = 5
     while counterLeft > 0:
         if is_process_running(GAME_PROCESS_NAME):
-            logging.info("Game process detected")
-            send_log("INFO", "Game process detected")
+            sms = "Game process detected"
+            logging.info(sms)
+            send_log("INFO", sms)
             return True
         
         time.sleep(5)
         counterLeft -= 1
 
-    logging.error("Game process not detected")
-    send_log("ERROR", "Game process not detected")
+    sms = "Game process not detected"
+    logging.error(sms)
+    send_log("ERROR", sms)
+
     return False
 
 def login_form_visible():
@@ -177,7 +201,7 @@ def login_form_visible():
             return False
 
         score, _ = ssim(current_gray, reference_gray, full=True)
-        logging.info(f"Login form similarity: {score:.3f}")
+        logging.debug(f"Login form similarity: {score:.3f}")
         send_log("INFO", f"Login form similarity: {score:.3f}")
 
         return score >= LOGIN_FORM_THRESHOLD
@@ -210,9 +234,6 @@ def isNotClickable():
     return score >= LOGIN_FORM_THRESHOLD
 
 def focus_window_by_title(keyword, timeout=10):
-    """
-    Brings the first window containing `keyword` in its title to the front.
-    """
     logging.info(f"Attempting to focus window with title containing '{keyword}' (timeout: {timeout}s)")
     send_log("INFO", f"Attempting to focus window with title containing '{keyword}' (timeout: {timeout}s)")
     end_time = time.time() + timeout
@@ -229,7 +250,6 @@ def focus_window_by_title(keyword, timeout=10):
                 send_log("INFO", "Window is minimized, restoring")
                 win.restore()
 
-            logging.info("Activating window")
             send_log("INFO", "Activating window")
             win.activate()
             time.sleep(0.5)
@@ -242,11 +262,16 @@ def focus_window_by_title(keyword, timeout=10):
     return False
 
 def close_all_crossfire_windows():
-    logging.info("Searching for all CrossFire windows to close")
+    sms = "Searching for all CrossFire windows to close"
+    logging.info(sms)
+    send_log("INFO", sms)
     
     windows = gw.getWindowsWithTitle("CrossFire")
     if not windows:
-        logging.warning("No CrossFire windows found")
+        sms = "No CrossFire windows found"
+        logging.warning(sms)
+        send_log("WARNING", sms)
+
         return False
 
     closed_count = 0
@@ -285,9 +310,12 @@ def close_crossfire_window():
 
     if closed_window or killed > 0:
         logging.info(f"CrossFire cleanup complete (killed {killed} processes)")
+        send_log("INFO", f"CrossFire cleanup complete (killed {killed} processes)")
         return True
 
-    logging.error("No CrossFire windows or processes found")
+    sms = "No CrossFire windows or processes found"
+    logging.info(sms)
+    send_log("INFO", sms)
     return False
 
 def image_similarity(img1, img2):
@@ -329,7 +357,9 @@ def takeScreenshot(fileName):
     current_roi = pyautogui.screenshot()
     path = "logs/images/"
     current_roi.save(path + fileName + ".png")
-    logging.info("Done screenshot")
+    sms = "Done screenshot"
+    logging.info(sms)
+    send_log("INFO", sms)
 
 def get_current_ip():
     try:
@@ -338,35 +368,50 @@ def get_current_ip():
         return None
 
 def wait_for_ip_change(user_info):
-    logging.warning("IP marked as bad. Need to change IP.")
+    sms = "IP marked as bad. Need to change IP."
+    logging.warning(sms)
+    send_log("WARNING", sms)
 
     old_ip = user_info["ip"]
 
     while True:
-        logging.info("Waiting 10 minutes before checking IP again...")
+        sms = "Waiting 10 minutes before checking IP again..."
+        logging.info(sms)
+        send_log("INFO", sms)
         time.sleep(IP_WAIT_SECONDS)
 
         new_ip = get_current_ip()
         logging.info(f"Current IP after wait: {new_ip}")
+        send_log("INFO", f"Current IP after wait: {new_ip}")
 
         if not new_ip:
-            logging.warning("Failed to fetch IP, retrying...")
+            sms = "Failed to fetch IP, retrying..."
+            logging.warning(sms)
+            send_log("WARNING", sms)
             continue
 
         if new_ip == old_ip:
-            logging.warning("IP has not changed. Need to change IP.")
+            sms = "IP has not changed. Need to change IP."
+            logging.warning(sms)
+            send_log('WARNING', sms)
             continue
 
         # IP changed ✅
         logging.info(f"IP changed from {old_ip} → {new_ip}")
+        send_log("INFO", f"IP changed from {old_ip} → {new_ip}")
         user_info["ip"] = new_ip
         user_info["status"] = "initial"
         return True
 
-def main(): 
+def main():
+    global GLOBAL_STATUS
+
     logging.info(f"Screen size at click time: {pyautogui.size()}")
     time.sleep(2)
-    logging.info("Starting main automation sequence")
+    sms = "Starting main automation sequence"
+    send_log("INFO", "--------------")
+    send_log("INFO", sms)
+    logging.info(sms)
 
     start_launcher()
 
@@ -374,13 +419,16 @@ def main():
         abort("game did not start")
         return False
 
-    logging.info("Waiting for login form to appear...")
+    sms = "Waiting for login form to appear..."
+    logging.info(sms)
+    send_log("INFO", sms)
     
     # initial to look for login
     clickLeft = 15
     while clickLeft > 0:
         if not login_form_visible():
             logging.info(f"Login form not found, retrying... ({clickLeft-1} attempts left)")
+            send_log("INFO", f"Login form not found ... {clickLeft-1}/15")
             clickLeft -= 1
             time.sleep(CHECK_INTERVAL)
 
@@ -390,7 +438,9 @@ def main():
             
             continue
         
-        logging.info("Login form detected successfully")
+        sms = "Login form detected successfully"
+        logging.info(sms)
+        send_log("INFO", sms)
         break
 
     good = True
@@ -401,7 +451,10 @@ def main():
     while good:
         status, confidence = getCurrentStatus()
 
+        GLOBAL_STATUS = status
+
         logging.info(f"Current status: {status} with confidence {confidence}")
+        send_log("INFO", f"Current status: {status} with confidence {confidence}")
 
         if status == last_status:
             same_status_count += 1
@@ -424,7 +477,8 @@ def main():
             clickLeft = 15
             while clickLeft > 0:
                 if not login_form_visible():
-                    logging.info(f"Login form not visible in LOGIN state, retrying... ({clickLeft-1} attempts left)")
+                    logging.info(f"Login form not found, retrying... ({clickLeft-1} attempts left)")
+                    send_log("INFO", f"Login form not found ... {clickLeft-1}/15")
                     clickLeft -= 1
                     time.sleep(CHECK_INTERVAL)
 
@@ -479,6 +533,7 @@ def main():
             logging.info("Clicking username input field")
             pydirectinput.click()
             logging.info(f"Typing username: {data['username']}")
+            send_log("INFO", f"Typing username: {data['username']}")
             pyautogui.write(data['username'], interval=0.05)
 
             time.sleep(1)
@@ -491,6 +546,7 @@ def main():
             logging.info("Clicking password input field")
             pydirectinput.click()
             logging.info("Typing password")
+            send_log("INFO", f"Typing password: **********")
             pyautogui.write(data['password'], interval=0.05)
 
             time.sleep(1)
@@ -500,14 +556,19 @@ def main():
             logging.info(f"Moving to login button at ({x}, {y})")
             pydirectinput.moveTo( x, y)
             time.sleep(0.1)
-            logging.info("Clicking login button")
+            sms = "Clicking login button"
+            logging.info(sms)
+            send_log("INFO", sms)
             pydirectinput.click()
 
             logging.info("Waiting 5 seconds after login attempt")
             time.sleep(5)
         
         elif status == "IGN":
-            logging.info("Entering IGN input state")
+            sms = "Entering IGN input state"
+            logging.info(sms)
+            send_log("INFO", sms)
+
             # input ign
             x, y = coords['ignInput']
             logging.info(f"Moving to IGN input field at ({x}, {y})")
@@ -516,8 +577,8 @@ def main():
             logging.info("Clicking IGN input field")
             pydirectinput.click()
             logging.info(f"Typing IGN: {data['ign']}")
+            send_log("INFO", f"Typing IGN: {data['ign']}")
             pyautogui.write(data['ign'], interval=0.05)
-
             time.sleep(1)
 
             # confirm
@@ -525,7 +586,9 @@ def main():
             logging.info(f"Moving to IGN confirm button at ({x}, {y})")
             pydirectinput.moveTo(x, y)
             time.sleep(0.1)
-            logging.info("Clicking IGN confirm button")
+            sms = "Clicking IGN confirm button"
+            logging.info(sms)
+            send_log("INFO", sms)
             pydirectinput.click()
             time.sleep(1)
             logging.info("Double-clicking IGN confirm button")
@@ -538,49 +601,66 @@ def main():
             logging.info(f"Moving to IGN okay button at ({x}, {y})")
             pydirectinput.moveTo(x, y)
             time.sleep(0.1)
-            logging.info("Clicking IGN okay button")
+            sms = "Clicking IGN okay button"
+            logging.info(sms)
+            send_log("INFO", sms)
             pydirectinput.click()
 
         elif status == "BUY_CHAR":
-            logging.info("Entering BUY_CHAR state")
+            sms = "Entering BUY_CHAR state"
+            logging.info(sms)
+            send_log("INFO", sms)
+
              # BUY CHAR
             x, y = coords['buyCharacterButton']
             logging.info(f"Moving to buy character button at ({x}, {y})")
             pydirectinput.moveTo(x, y)
             time.sleep(0.1)
-            logging.info("Clicking buy character button")
+            sms = "Clicking buy character button"
+            logging.info(sms)
+            send_log("INFO", sms)
+
             pydirectinput.click()
 
             time.sleep(1)
-
-            # 3 esc. 
-            logging.info("Pressing ESC key (1/3)")
-            pyautogui.press("esc")
-            time.sleep(1)
-            logging.info("Pressing ESC key (2/3)")
-            pyautogui.press("esc")
-            time.sleep(1)
-            logging.info("Pressing ENTER key (1/2)")
+            
+            sms = "Pressing ENTER key (1/2)"
+            logging.info(sms)
+            send_log("INFO", sms)
             pyautogui.press("enter")
             time.sleep(1)
-            logging.info("Pressing ENTER key (2/2)")
+
+            sms = "Pressing ENTER key (2/2)"
+            logging.info(sms)
+            send_log("INFO", sms)
             pyautogui.press("enter")
 
         elif status == "HOME_ADS":
-            logging.info("Entering HOME_ADS state")
+            sms = "Entering HOME_ADS state"
+            logging.info(sms)
+            send_log("INFO", sms)
+
             time.sleep(1)
-            logging.info("Pressing ESC to close ads")
+            sms = "Pressing ESC to close ads"
+            logging.info(sms)
+            send_log("INFO", sms)
             pyautogui.press("esc")
             time.sleep(1)
         
         elif status == "HOME":
-            logging.info("Entering HOME state")
+            sms = "Entering HOME state"
+            logging.info(sms)
+            send_log("INFO", sms)
+
             # PRESS LUCKY LOGO
             x, y = coords['luckSpinLogoButton']
             logging.info(f"Moving to lucky spin logo button at ({x}, {y})")
             pydirectinput.moveTo( x, y)
             time.sleep(0.1)
-            logging.info("Clicking lucky spin logo button")
+
+            sms = "Clicking lucky spin logo button"
+            logging.info(sms)
+            send_log("INFO", sms)
             pydirectinput.click()
 
             # PRESS FREE SPIN
@@ -588,15 +668,18 @@ def main():
             logging.info(f"Moving to use free spin button at ({x}, {y})")
             pydirectinput.moveTo( x, y)
             time.sleep(0.1)
-            logging.info("Clicking use free spin button")
+            sms = "Clicking use free spin button"
+            logging.info(sms)
+            send_log("INFO", sms)
             pydirectinput.click()
 
             clickLeft = 10
             logging.info(f"Starting free spin attempts (max {clickLeft})")
             while clickLeft > 0:
                 if isNotClickable():
-                    logging.info("Lucky spin button is not clickable, stopping attempts")
-                    takeScreenshot(data['username'] + data['ign'] + " login")
+                    sms = "Lucky spin button is not clickable, stopping attempts"
+                    logging.info(sms)
+                    send_log("INFO", sms)
                     break
 
                 # PRESS FREE SPIN
@@ -609,13 +692,19 @@ def main():
 
                 clickLeft -= 1
                 logging.info(f"Waiting 10 seconds before next attempt. Attempts left: {clickLeft}")
+                send_log("INFO", "Waiting 10 seconds before next attempt.")
                 time.sleep(10)
 
-            logging.info("Free spin process completed")
+            sms = "Free spin process completed"
+            logging.info(sms)
+            send_log("INFO", sms)
+
             good = False
 
         else:
-            logging.warning("Unknown UI state, waiting...")
+            sms = "Unknown UI state, waiting..."
+            logging.warning(sms)
+            send_log("INFO", sms)
 
         time.sleep(10)
 
@@ -623,17 +712,20 @@ def main():
     # EXIT
     logging.info("Starting exit sequence")
     time.sleep(10)
-    logging.info("Closing CrossFire window")
+
+    sms = "Closing CrossFire window"
+    logging.info(sms)
+    send_log("INFO", sms)
     close_crossfire_window()
-    logging.info("Waiting 10 seconds after closing")
-    time.sleep(10)
-    logging.info("Automation completed successfully")
 
     return True
 
 # ----------------------------------------------------
 # MAIN
 # ----------------------------------------------------
+
+send_log("INFO", "test")
+sys.exit()
 
 # get current IP address
 user_info = {
@@ -649,7 +741,9 @@ while errorLeft > 0:
         res = requests.get(f"{API_BASE}/next", timeout=waitingTime)
 
         if res.status_code == 404:
-            logging.info("No Lucky Spin jobs available. Sleeping...")
+            sms = "No Lucky Spin jobs available. Sleeping..."
+            logging.info(sms)
+            send_log("INFO", sms)
             time.sleep(10)
             continue
 
@@ -676,9 +770,9 @@ while errorLeft > 0:
     logging.info(f"Password: {data['password']}")
     logging.info(f"IGN: {data['ign']}")
 
-    logging.info("Starting main automation process")
     success = main()
-    
+    GLOBAL_STATUS = "initial"
+
     try:
         if success:
 
@@ -693,7 +787,9 @@ while errorLeft > 0:
             )
 
             errorLeft = 3
-            logging.info("Success detected, resetting error counter to 3")
+            sms = "Success detected, resetting error counter to 3"
+            logging.info(sms)
+            send_log("INFO", sms)
 
         else:
             logging.error("Automation failed")
@@ -708,6 +804,7 @@ while errorLeft > 0:
 
             errorLeft -= 1
             logging.warning(f"Failure detected. errorLeft={errorLeft}")
+            send_log('WARNING', f"Failure detected. errorLeft={errorLeft}")
 
     except requests.exceptions.RequestException as e:
         logging.error(f"Failed to update job status: {e}")

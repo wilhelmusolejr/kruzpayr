@@ -31,18 +31,11 @@ LOGIN_FORM_REF = IMAGES_DIR / "roi_test.png"
 # UI STATES
 # --------------------------------------------------
 
-UI_STATES = {
-    "LOGIN": IMAGES_DIR / "login.png",
-    "HOME": IMAGES_DIR / "home.png",
-    "HOME_ADS": IMAGES_DIR / "home_ads.png",
-    "LUCKY_DRAW": IMAGES_DIR / "lucky_draw.png",
-}
 
 # --------------------------------------------------
 # THRESHOLDS & TIMING
 # --------------------------------------------------
 
-CHECK_INTERVAL = 5
 
 LOGIN_FORM_THRESHOLD = 0.95
 RANKMATCH_THRESHOLD = 0.65
@@ -52,4 +45,11 @@ RANKMATCH_THRESHOLD = 0.65
 # --------------------------------------------------
 
 API_BASE = "http://192.168.131.250:3000/lucky-spin"
+DASHBOARD_API = "http://192.168.131.250:3001"
+
+# -------------------------
 waitingTime = 30
+STATUS_THRESHOLD = 0.80
+IP_WAIT_SECONDS = 10 * 60 
+errorLeft = 3
+CHECK_INTERVAL = 5
