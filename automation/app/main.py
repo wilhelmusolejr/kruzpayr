@@ -681,7 +681,6 @@ while errorLeft > 0:
     
     try:
         if success:
-            logging.info("Automation completed successfully")
 
             requests.patch(
                 f"{API_BASE}/{job_id}",
