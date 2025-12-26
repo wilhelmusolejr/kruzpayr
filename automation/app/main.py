@@ -8,9 +8,14 @@ from config.config import (
     LUCKY_NOT_CLICKABLE_REF,
     CHECK_INTERVAL,
     API_BASE,
+    UI_LAYOUT_PATH,
+    UI_STATES_PATH,
     waitingTime
 )
 
+import pygetwindow as gw
+import pandas as pd
+import numpy as np
 import pyautogui
 import time
 import keyboard
@@ -18,11 +23,8 @@ import psutil
 import os
 import json
 import cv2
-import numpy as np
 import sys
 import pydirectinput
-import pygetwindow as gw
-import pandas as pd
 import logging
 import requests
 
@@ -45,14 +47,10 @@ logging.basicConfig(
 
 resolution = "800x600"
 
-config_path = "../config/"
-uistates_path = os.path.join(config_path, "ui_states.json")
-uilayout_path = os.path.join(config_path, "ui_layout.json")
-
-with open(uistates_path, "r") as f:
+with open(UI_STATES_PATH, "r") as f:
     UI_STATES = json.load(f)
 
-with open(uilayout_path, "r") as f:
+with open(UI_LAYOUT_PATH, "r") as f:
     ui_layout = json.load(f)
 
 coords = ui_layout["resolution"][resolution]["keyboard"]

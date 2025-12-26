@@ -1,0 +1,10 @@
+2025-12-26 09:13:40,896 - INFO - Starting main account processing loop
+2025-12-26 09:13:40,896 - INFO - Loading backend jobs. Errors left: 3
+2025-12-26 09:14:01,331 - INFO - Selected account for processing: terresa318
+2025-12-26 09:14:01,331 - INFO - Username: terresa318
+2025-12-26 09:14:01,332 - INFO - Password: boktitelo1
+2025-12-26 09:14:01,332 - INFO - IGN: 666.8934.899
+2025-12-26 09:14:01,332 - INFO - Starting main automation process
+2025-12-26 09:14:01,332 - INFO - Screen size at click time: Size(width=2560, height=1600)
+2025-12-26 09:14:03,333 - INFO - Starting main automation sequence
+2025-12-26 09:14:04,354 - INFO - Starting launcher...

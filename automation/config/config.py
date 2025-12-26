@@ -9,6 +9,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATABASE_PATH = PROJECT_ROOT / "database" / "database.csv"
 IMAGES_DIR = PROJECT_ROOT / "images"
 
+UI_LAYOUT_PATH = PROJECT_ROOT / "config" / "ui_layout.json"
+UI_STATES_PATH = PROJECT_ROOT / "config" / "ui_states.json"
 # --------------------------------------------------
 # GAME
 # --------------------------------------------------
