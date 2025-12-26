@@ -724,9 +724,6 @@ def main():
 # MAIN
 # ----------------------------------------------------
 
-send_log("INFO", "test")
-sys.exit()
-
 # get current IP address
 user_info = {
     "ip": get_current_ip(),
