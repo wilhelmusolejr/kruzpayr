@@ -208,20 +208,70 @@ def focus_window_by_title(keyword, timeout=10):
     logging.warning(f"Could not find window with title containing '{keyword}' within {timeout} seconds")
     return False
 
-def close_crossfire_window():
-    logging.info("Searching for CrossFire window to close")
+# def close_crossfire_window():
+#     logging.info("Searching for CrossFire window to close")
+#     windows = gw.getWindowsWithTitle("CrossFire")
+#     if not windows:
+#         logging.error("CrossFire window not found")
+#         return False
+
+#     win = windows[0]
+#     logging.info(f"Found CrossFire window: '{win.title}', closing gracefully")
+#     win.close()   # graceful close
+#     logging.info("Waiting 2 seconds for window to close")
+#     time.sleep(2)
+#     logging.info("CrossFire window closed successfully")
+#     return True
+
+
+def close_all_crossfire_windows():
+    logging.info("Searching for all CrossFire windows to close")
+    
     windows = gw.getWindowsWithTitle("CrossFire")
     if not windows:
-        logging.error("CrossFire window not found")
+        logging.warning("No CrossFire windows found")
         return False
 
-    win = windows[0]
-    logging.info(f"Found CrossFire window: '{win.title}', closing gracefully")
-    win.close()   # graceful close
-    logging.info("Waiting 2 seconds for window to close")
-    time.sleep(2)
-    logging.info("CrossFire window closed successfully")
-    return True
+    closed_count = 0
+
+    for win in windows:
+        try:
+            logging.info(f"Closing window: '{win.title}'")
+
+            if win.isMinimized:
+                win.restore()
+                time.sleep(0.2)
+
+            win.close()
+            closed_count += 1
+
+            time.sleep(0.5)  # small delay between closes
+
+        except Exception as e:
+            logging.error(f"Failed to close window '{win.title}': {e}")
+
+    logging.info(f"Closed {closed_count}/{len(windows)} CrossFire windows")
+    return closed_count > 0
+
+def close_crossfire_window():
+    closed_window = close_all_crossfire_windows()
+
+    killed = 0
+    for proc in psutil.process_iter(["pid", "name"]):
+        try:
+            if proc.info["name"] and "crossfire" in proc.info["name"].lower():
+                logging.warning(f"Killing process {proc.info['name']} (PID {proc.pid})")
+                proc.kill()
+                killed += 1
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+
+    if closed_window or killed > 0:
+        logging.info(f"CrossFire cleanup complete (killed {killed} processes)")
+        return True
+
+    logging.error("No CrossFire windows or processes found")
+    return False
 
 def image_similarity(img1, img2):
     img1_gray = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
