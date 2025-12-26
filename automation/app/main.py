@@ -54,9 +54,9 @@ with open(UI_LAYOUT_PATH, "r") as f:
     ui_layout = json.load(f)
 
 coords = ui_layout["resolution"][resolution]["keyboard"]
-roi = ui_layout["resolution"][resolution]["roi"]
 
-sys.exit()
+login_form_roi = (282, 330, 521, 585)
+lucky_button_roi = (264, 477, 440, 533)
 
 STATUS_THRESHOLD = 0.80
 errorLeft = 3
@@ -115,11 +115,11 @@ def wait_for_game_process():
 
 def login_form_visible():
     try:
-        x1, y1, x2, y2 = roi["login_form"]
+        x1, y1, x2, y2 = login_form_roi
 
         # Safety check
         if x2 <= x1 or y2 <= y1:
-            logging.error(f"Invalid ROI: {roi["login_form"]}")
+            logging.error(f"Invalid ROI: {login_form_roi}")
             return False
 
         width = x2 - x1
@@ -150,7 +150,7 @@ def login_form_visible():
         return False
 
 def isNotClickable():
-    x1, y1, x2, y2 = roi["lucky_button"]
+    x1, y1, x2, y2 = lucky_button_roi
     width = x2 - x1
     height = y2 - y1
 

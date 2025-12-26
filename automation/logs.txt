@@ -8,3 +8,12 @@
 2025-12-26 09:14:01,332 - INFO - Screen size at click time: Size(width=2560, height=1600)
 2025-12-26 09:14:03,333 - INFO - Starting main automation sequence
 2025-12-26 09:14:04,354 - INFO - Starting launcher...
+2025-12-26 09:30:43,958 - INFO - Starting main account processing loop
+2025-12-26 09:30:43,958 - INFO - Loading backend jobs. Errors left: 3
+2025-12-26 09:30:44,775 - INFO - Selected account for processing: abndres896
+2025-12-26 09:30:44,777 - INFO - Username: abndres896
+2025-12-26 09:30:44,777 - INFO - Password: boktitelo1
+2025-12-26 09:30:44,777 - INFO - IGN: 666.8620.348
+2025-12-26 09:30:44,777 - INFO - Starting main automation process
+2025-12-26 09:30:44,777 - INFO - Screen size at click time: Size(width=2560, height=1600)
+2025-12-26 09:30:46,779 - INFO - Starting main automation sequence
