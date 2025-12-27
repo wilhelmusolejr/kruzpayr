@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Bot Dashboard</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+    <style>
+      body {
+        background: #111;
+        color: #eee;
+        font-family: monospace;
+        margin: 0;
+        padding: 10px;
+      }
+
+      h2 {
+        margin-bottom: 10px;
+      }
+
+      .container {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+      }
+
+      /* Runner card */
+      .runner-card {
+        border: 1px solid #333;
+        width: 360px;
+        background: #0c0c0c;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Thin header */
+      .runner-header {
+        padding: 6px 8px;
+        background: #111;
+        border-bottom: 1px solid #333;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .runner-header .vm {
+        color: cyan;
+        font-weight: bold;
+        font-size: 18px;
+        text-align: center;
+        margin-bottom: 10px;
+        margin-top: 10px;
+      }
+
+      .runner-header .meta {
+        color: #aaa;
+      }
+
+      /* Scrollable body */
+      .runner-body {
+        padding: 8px;
+        height: 75vh;
+        overflow-y: auto;
+        font-size: 13px;
+      }
+
+      .log {
+        margin-bottom: 4px;
+        white-space: pre-wrap;
+      }
+
+      .INFO {
+        color: #0f0;
+      }
+      .ERROR {
+        color: #ff5555;
+      }
+      .WARNING {
+        color: orange;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h2>Live Bot Logs</h2>
+
+    <div class="container" id="runners"></div>
+
+    <script>
+      const socket = io();
+      const runnersDiv = document.getElementById("runners");
+      const runnerCards = {};
+
+      function mask(value) {
+        if (!value) return "unknown";
+        return "********";
+      }
+
+      function getRunnerCard(data) {
+        const runner = data.runner || "VM";
+
+        if (!runnerCards[runner]) {
+          const card = document.createElement("div");
+          card.className = "runner-card";
+
+          const header = document.createElement("div");
+          header.className = "runner-header";
+          header.innerHTML = `
+            <div class="vm">${runner}</div>
+            <div class="meta">Username : ${data.username || "unknown"}</div>
+            <div class="meta">Password : ${mask(data.password)}</div>
+            <div class="meta">IGN      : ${data.ign || "unknown"}</div>
+          `;
+
+          const body = document.createElement("div");
+          body.className = "runner-body";
+
+          card.appendChild(header);
+          card.appendChild(body);
+          runnersDiv.appendChild(card);
+
+          runnerCards[runner] = { body, header };
+        }
+
+        return runnerCards[runner].body;
+      }
+
+      socket.on("log", (data) => {
+        const body = getRunnerCard(data);
+
+        const line = document.createElement("div");
+        line.className = `log ${data.level || "INFO"}`;
+        line.textContent = `[${data.status || "UNKNOWN"}] ${
+          data.message || ""
+        }`;
+
+        body.appendChild(line);
+        body.scrollTop = body.scrollHeight;
+      });
+    </script>
+  </body>
+</html>

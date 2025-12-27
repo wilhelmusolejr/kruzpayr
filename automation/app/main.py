@@ -1,3 +1,8 @@
+from dotenv import load_dotenv
+from app.log import upload_and_delete
+from datetime import datetime
+from PIL import ImageGrab, Image
+from skimage.metrics import structural_similarity as ssim
 from config.config import (
     DATABASE_PATH,
     EXE_PATH,
@@ -17,7 +22,6 @@ from config.config import (
     waitingTime
 )
 
-from datetime import datetime
 import pygetwindow as gw
 import pandas as pd
 import numpy as np
@@ -32,16 +36,27 @@ import sys
 import pydirectinput
 import logging
 import requests
+import os
 
-from PIL import ImageGrab, Image
-from skimage.metrics import structural_similarity as ssim
+load_dotenv()
+
+resolution = "800x600"
+RUNNER_ID = os.getenv("RUNNER_ID", "UNKNOWN")
+
+# Log
+timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+log_filename = f"{timestamp}_{RUNNER_ID}_log.txt"
+
+LOG_DIR = "logs"
+log_path = os.path.join(LOG_DIR, log_filename)
+os.makedirs(LOG_DIR, exist_ok=True)
 
 # Set up logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
+    format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler('logs.txt'),
+        logging.FileHandler(log_path, encoding="utf-8"),
         logging.StreamHandler()
     ]
 )
@@ -49,9 +64,6 @@ logging.basicConfig(
 # ----------------------------------------------------
 # CONFIG
 # ----------------------------------------------------
-
-resolution = "800x600"
-RUNNER_ID = "VM1"
 
 with open(UI_STATES_PATH, "r") as f:
     UI_STATES = json.load(f)
@@ -380,13 +392,33 @@ def getCurrentStatus():
 
     return best_status, best_score
 
-def takeScreenshot(fileName):
-    current_roi = pyautogui.screenshot()
-    path = "logs/images/"
-    current_roi.save(path + fileName + ".png")
-    sms = "Done screenshot"
-    logging.info(sms)
-    send_log("INFO", sms)
+def takeScreenshot(fileName=None):
+    # Ensure folders exist
+    path = "logs/images"
+    os.makedirs(path, exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    # Build filename
+    if fileName:
+        final_name = f"{fileName}_{timestamp}.png"
+    else:
+        final_name = f"{timestamp}.png"
+
+    file_path = os.path.join(path, final_name)
+
+    # Take screenshot
+    screenshot = pyautogui.screenshot()
+    screenshot.save(file_path)
+
+    # Upload & delete
+    upload_and_delete(
+        filepath=file_path
+    )
+
+    msg = f"Screenshot captured: {final_name}"
+    logging.info(msg)
+    send_log("INFO", msg)
 
 def get_current_ip():
     try:
@@ -777,8 +809,14 @@ user_info = {
 }
 
 logging.info("Starting main account processing loop")
+counter = 1
+toUpload = 10
 while errorLeft > 0:
     logging.info(f"Loading backend jobs. Errors left: {errorLeft}")
+
+    if toUpload == 0:
+        upload_and_delete(log_path)
+        toUpload = 10
 
     try:
         res = requests.get(f"{API_BASE}/next", timeout=waitingTime)
@@ -867,6 +905,8 @@ while errorLeft > 0:
         continue
 
     time.sleep(5)
+    counter += 1
+    toUpload -= 1
 
 
 
