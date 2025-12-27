@@ -1,4 +1,10 @@
 from pathlib import Path
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+SERVER_IP = os.getenv("SERVER_IP")
 
 # --------------------------------------------------
 # PATHS
@@ -45,8 +51,8 @@ RANKMATCH_THRESHOLD = 0.65
 # API
 # --------------------------------------------------
 
-API_BASE = "http://192.168.131.250:3000/lucky-spin"
-DASHBOARD_API = "http://192.168.131.250:3001"
+API_BASE = f"http://{SERVER_IP}:3000/lucky-spin"
+DASHBOARD_API = f"http://{SERVER_IP}:3001"
 
 # -------------------------
 waitingTime = 30
