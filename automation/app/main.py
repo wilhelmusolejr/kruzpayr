@@ -752,14 +752,14 @@ def main():
 
             time.sleep(5)
 
-            if isModalExist():
-                x, y = coords['confirmPurchaseCompleteButton']
+            # if isModalExist():
+            x, y = coords['confirmPurchaseCompleteButton']
 
-                logging.info("Found modal in home")
-                send_log("INFO", "Found modal in home")
-                pydirectinput.moveTo( x, y)
-                
-                time.sleep(1)
+            logging.info("Found modal in home")
+            send_log("INFO", "Found modal in home")
+            pydirectinput.moveTo( x, y)
+            
+            time.sleep(1)
 
             pyautogui.press("enter")
             time.sleep(1)
