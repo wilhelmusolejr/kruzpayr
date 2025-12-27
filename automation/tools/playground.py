@@ -8,27 +8,23 @@ import logging
 
 time.sleep(2)
 
-RUNNER_ID = "VM2"
-DASHBOARD_API = "http://192.168.131.250:3001"
+x1, y1, x2, y2 = (215, 193, 586, 355)
 
-print("Screen size at click time:", pyautogui.size())
+# Safety check
+if x2 <= x1 or y2 <= y1:
+    logging.error(f"Invalid ROI: {login_form_roi}")
+    send_log("ERROR", f"Invalid ROI: {login_form_roi}")
 
-def send_log(level, message):
-    try:
-        requests.post(
-            f"{DASHBOARD_API}/log",
-            json={
-                "level": level,
-                "message": message,
-                "runner": RUNNER_ID
-            },
-            timeout=3
-        )
-    except Exception:
-        pass  # never crash bot because of dashboard
+width = x2 - x1
+height = y2 - y1
 
-send_log("INFO", "Login started")
-send_log("ERROR", "Login failed")
+current_roi = pyautogui.screenshot(
+    region=(x1, y1, width, height)
+)
+
+current_roi.save("test.png")  # debug
+
+
 
 # --------------------
 sys.exit()
