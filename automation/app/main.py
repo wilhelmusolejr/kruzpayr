@@ -80,6 +80,8 @@ UI_STATE_IMAGES = {
 
 login_form_roi = (282, 330, 521, 585)
 lucky_button_roi = (264, 477, 440, 533)
+modal_home_ads =  (215, 193, 586, 355)
+modal_home = (250, 202, 546, 391)
 
 GLOBAL_STATUS = "init"
 
@@ -336,7 +338,7 @@ def close_crossfire_window():
     return False
 
 def isModalExist():
-    x1, y1, x2, y2 = (250, 202, 546, 391)
+    x1, y1, x2, y2 = modal_home
     width = x2 - x1
     height = y2 - y1   
 
@@ -356,6 +358,28 @@ def isModalExist():
     send_log("INFO", f"MODAL BUTTON similarity: {score:.2f}")
 
     return score >= LOGIN_FORM_THRESHOLD 
+
+def isModalExistHomeAds():
+    x1, y1, x2, y2 = modal_home
+    width = x2 - x1
+    height = y2 - y1   
+
+    current_roi = pyautogui.screenshot(region=(x1, y1, width, height))
+    reference = Image.open(MODAL_REF)
+
+    current_gray = np.array(current_roi.convert("L"))
+    reference_gray = np.array(reference.convert("L"))
+
+    if current_gray.shape != reference_gray.shape:
+        logging.warning(f"ROI size mismatch: {current_gray.shape} vs {reference_gray.shape}")
+        send_log("WARNING", f"ROI size mismatch: {current_gray.shape} vs {reference_gray.shape}")
+        return False
+
+    score, _ = ssim(current_gray, reference_gray, full=True)
+    logging.info(f"Home ads modal similarity: {score:.2f}")
+    send_log("INFO", f"Home ads modal similarity: {score:.2f}")
+
+    return score >= LOGIN_FORM_THRESHOLD  
 
 def image_similarity(img1, img2):
     img1_gray = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
@@ -695,9 +719,24 @@ def main():
             pyautogui.press("enter")
 
         elif status == "HOME_ADS":
+
             sms = "Entering HOME_ADS state"
             logging.info(sms)
             send_log("INFO", sms)
+
+            time.sleep(5)
+
+            if isModalExistHomeAds():
+                sms = "Found modal in home ads"
+                logging.info(sms)
+                send_log("INFO", sms)
+                pydirectinput.moveTo( x, y)
+                
+                time.sleep(1)
+
+                x, y = coords['modalHomeAds']
+                pydirectinput.moveTo( x, y)
+                time.sleep(0.1)
 
             time.sleep(1)
             sms = "Pressing ESC to close ads"
