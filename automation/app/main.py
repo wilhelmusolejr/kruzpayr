@@ -619,7 +619,7 @@ def main():
             send_log("INFO", f"Typing username: {data['username']}")
             pyautogui.write(data['username'], interval=0.05)
 
-            time.sleep(1)
+            time.sleep(2)
 
             # PASSWORD
             x, y = coords['passwordInput']
@@ -761,11 +761,11 @@ def main():
                 
                 time.sleep(1)
 
-                pyautogui.press("enter")
-                time.sleep(1)
+            pyautogui.press("enter")
+            time.sleep(1)
 
-                pyautogui.press("enter")
-                time.sleep(1)
+            pyautogui.press("enter")
+            time.sleep(1)
 
             # PRESS LUCKY LOGO
             x, y = coords['luckSpinLogoButton']
