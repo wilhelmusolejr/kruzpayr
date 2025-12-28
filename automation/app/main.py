@@ -957,16 +957,9 @@ while errorLeft > 0:
 
     if errorLeft <= 0:
         user_info["status"] = "bad"
+        time.sleep(3600)
+        errorLeft = 1
 
-    # 🔴 IP is bad → do NOT run bot
-    if user_info["status"] == "bad":
-        recovered = wait_for_ip_change(user_info)
-
-        if recovered:
-            errorLeft = 1 
-            user_info["status"] = "initial"
-            logging.info("Retrying with new IP...")
-        continue
 
     time.sleep(5)
     counter += 1
