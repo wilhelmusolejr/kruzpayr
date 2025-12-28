@@ -26,6 +26,7 @@ import pygetwindow as gw
 import pandas as pd
 import numpy as np
 import pyautogui
+import random
 import time
 import keyboard
 import psutil
@@ -530,7 +531,7 @@ def main():
     last_status = None
     same_status_count = 0
     MAX_SAME_STATUS = 5
-
+    ign = 0
     while good:
         status, confidence = getCurrentStatus()
 
@@ -648,6 +649,10 @@ def main():
             time.sleep(5)
         
         elif status == "IGN":
+            if ign > 1 :
+                number = random.randint(1000, 9999)
+                data['ign'] = f"{number}.666"
+
             sms = "Entering IGN input state"
             logging.info(sms)
             send_log("INFO", sms)
@@ -688,6 +693,8 @@ def main():
             logging.info(sms)
             send_log("INFO", sms)
             pydirectinput.click()
+
+            ign += 1
 
         elif status == "BUY_CHAR":
             sms = "Entering BUY_CHAR state"
@@ -820,6 +827,24 @@ def main():
             sms = "Unknown UI state, waiting..."
             logging.warning(sms)
             send_log("INFO", sms)
+
+            time.sleep(5)
+
+            # if isModalExist():
+            x, y = coords['confirmPurchaseCompleteButton']
+
+            logging.info("Found modal in home")
+            send_log("INFO", "Found modal in home")
+            pydirectinput.moveTo( x, y)
+            
+            time.sleep(1)
+
+            pyautogui.press("enter")
+            time.sleep(1)
+
+            pyautogui.press("enter")
+            time.sleep(1)
+
 
         time.sleep(10)
 
